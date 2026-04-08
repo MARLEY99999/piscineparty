@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -1367,27 +1367,61 @@
 
     /* B) Validation des champs obligatoires */
     if (!resData.nom || !resData.tel || !resData.places) {
-      errEl.textContent = 'ÔÜá´©Å Merci de remplir tous les champs obligatoires (*)';
+      errEl.textContent = '⚠️ Merci de remplir tous les champs obligatoires (*)';
       errEl.style.display = 'block';
       return;
     }
     if (isNaN(resData.places) || Number(resData.places) < 1) {
-      errEl.textContent = 'ÔÜá´©Å Le nombre de places doit ├¬tre au moins 1.';
+      errEl.textContent = '⚠️ Le nombre de places doit être au moins 1.';
       errEl.style.display = 'block';
       return;
     }
     errEl.style.display = 'none';
 
-    /* C) G├®n├®ration du Billet Virtuel */
-    // Remplir les donn├®es du billet
+    // Modifier le bouton pendant le chargement
+    const btnSubmit = document.querySelector('.btn-submit');
+    const originalBtnText = btnSubmit.innerHTML;
+    btnSubmit.innerHTML = '⏳ Création du billet...';
+    btnSubmit.disabled = true;
+
+    /* C) Génération du Billet Virtuel */
+    // Remplir les données du billet
     document.getElementById('vt-nom').textContent = resData.nom;
     let typeBilletStr = resData.billet ? resData.billet.split('ÔÇô')[0].trim() : 'Standard';
     document.getElementById('vt-type').textContent = `${typeBilletStr} (${resData.places} place${resData.places > 1 ? 's' : ''})`;
     
-    // G├®n├®rer un code al├®atoire style PP26-XXXX-XXX
+    // Générer un code aléatoire style PP26-XXXX-XXX
     const rd1 = Math.floor(1000 + Math.random() * 9000);
     const rd2 = Math.floor(100 + Math.random() * 900);
-    document.getElementById('vt-code').textContent = `PP26-${rd1}-${rd2}`;
+    resData.codeBillet = `PP26-${rd1}-${rd2}`;
+    document.getElementById('vt-code').textContent = resData.codeBillet;
+
+    // ----------------------------------------------------
+    // ENVOI À GOOGLE SHEETS
+    // Envoi des données vers le tableur via l'URL de l'App Script
+    // ----------------------------------------------------
+    const googleScriptURL = "https://script.google.com/macros/s/AKfycbx_WPho0NFMgxU3ue0q333DaxOi-GyEWss6cdKFzMFNUqZJr8DMXCbwxarJAMYVwIlAZA/exec";
+    
+    // On lance la requête en arrière-plan (fetch)
+    fetch(googleScriptURL, {
+      method: 'POST',
+      mode: 'no-cors', // Ignore la réponse pour éviter les bloquages de sécurité du navigateur
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        nom: resData.nom,
+        tel: resData.tel,
+        places: resData.places,
+        billet: resData.billet,
+        code: resData.codeBillet,
+        message: resData.msg
+      })
+    }).catch(err => console.error("Erreur d'envoi vers Sheets:", err));
+
+    // Restaurer le bouton
+    btnSubmit.innerHTML = originalBtnText;
+    btnSubmit.disabled = false;
 
     // Afficher l'animation du billet
     document.getElementById('formArea').style.display = 'none';
